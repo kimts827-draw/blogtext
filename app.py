@@ -22,7 +22,7 @@ def extract_content(url):
         soup = BeautifulSoup(response.text, 'html.parser')
 
         if not soup:
-            return "페이지를 읽을 수 없습니다."
+            return "페이지를 읽을 수 없습니다.", ""
 
         # 불필요한 요소 제거
         REMOVE_TAGS = ['script', 'style', 'nav', 'header', 'footer', 'aside', 'button', 'template', 'noscript']
@@ -115,10 +115,20 @@ def extract_content(url):
         if cleaned_text.strip():
             final_output.append(cleaned_text.strip())
 
-        return "\n\n".join(final_output)
+        return "\n\n".join(final_output), title  # ← 제목도 함께 반환
 
     except Exception as e:
-        return f"오류 발생: {str(e)}"
+        return f"오류 발생: {str(e)}", ""
+
+
+def make_filename(title):
+    """제목을 파일명으로 변환 (특수문자 제거)"""
+    if not title:
+        return "extracted.txt"
+    # 파일명에 쓸 수 없는 문자 제거
+    clean = re.sub(r'[\\/*?:"<>|\n\r]', '', title)
+    clean = clean.strip()
+    return f"{clean}.txt" if clean else "extracted.txt"
 
 
 # --- [Streamlit UI] ---
@@ -133,11 +143,11 @@ if st.button("추출하기", type="primary"):
         st.warning("URL을 입력해주세요.")
     else:
         with st.spinner("추출 중..."):
-            result = extract_content(url.strip())
+            result, title = extract_content(url.strip())  # ← 제목 받기
         st.text_area("추출 결과", value=result, height=500)
         st.download_button(
             label="📋 텍스트 다운로드",
             data=result,
-            file_name="extracted.txt",
+            file_name=make_filename(title),  # ← 제목으로 파일명 생성
             mime="text/plain"
         )
