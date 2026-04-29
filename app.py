@@ -1,9 +1,7 @@
 import re
-from flask import Flask, render_template, request, jsonify
 import requests
+import streamlit as st
 from bs4 import BeautifulSoup, Tag
-
-app = Flask(__name__)
 
 def extract_content(url):
     headers = {
@@ -123,19 +121,23 @@ def extract_content(url):
         return f"오류 발생: {str(e)}"
 
 
-@app.route('/')
-def index():
-    return render_template('index.html')
+# --- [Streamlit UI] ---
+st.set_page_config(page_title="블로그 텍스트 추출기", page_icon="📝", layout="centered")
+st.title("📝 블로그 텍스트 추출기")
+st.caption("네이버 블로그 URL을 입력하면 본문 텍스트를 추출합니다.")
 
+url = st.text_input("블로그 URL 입력", placeholder="https://blog.naver.com/...")
 
-@app.route('/extract', methods=['POST'])
-def extract():
-    url = request.json.get('url')
-    if not url:
-        return jsonify({'text': 'URL을 입력해주세요.'})
-    result = extract_content(url)
-    return jsonify({'text': result})
-
-
-if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+if st.button("추출하기", type="primary"):
+    if not url.strip():
+        st.warning("URL을 입력해주세요.")
+    else:
+        with st.spinner("추출 중..."):
+            result = extract_content(url.strip())
+        st.text_area("추출 결과", value=result, height=500)
+        st.download_button(
+            label="📋 텍스트 다운로드",
+            data=result,
+            file_name="extracted.txt",
+            mime="text/plain"
+        )
